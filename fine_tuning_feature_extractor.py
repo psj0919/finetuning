@@ -198,9 +198,9 @@ if __name__ == '__main__':
 
     model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=25)
 
-    visualize_model(model_conv)
-    plt.ioff()
-    plt.show()
+    # visualize_model(model_conv)
+    # plt.ioff()
+    # plt.show()
 
     visualize_model_predictions(model_conv, img_path='/storage/sjpark/hymenoptera_data/hymenoptera_data/val/bees/72100438_73de9f17af.jpg')
     plt.ioff()
