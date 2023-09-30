@@ -1,6 +1,3 @@
-# License: BSD
-# Author: Sasank Chilamkurthy
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -18,7 +15,6 @@ from tempfile import TemporaryDirectory
 cudnn.benchmark = True
 plt.ion()
 
-# interactive mode
 def imshow(inp, title=None):
     """Display image for Tensor."""
     inp = inp.numpy().transpose((1, 2, 0))
@@ -31,12 +27,9 @@ def imshow(inp, title=None):
         plt.title(title)
     plt.pause(0.001)  # pause a bit so that plots are updated
 
-
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
-    print_train_loss = []
-    print_val_loss = []
-    print_epoch = []
+
     # Create a temporary directory to save training checkpoints
     with TemporaryDirectory() as tempdir:
         best_model_params_path = os.path.join(tempdir, 'best_model_params.pt')
@@ -45,10 +38,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
         best_acc = 0.0
 
         for epoch in range(num_epochs):
-            print('-' * 10)
             print(f'Epoch {epoch}/{num_epochs - 1}')
             print('-' * 10)
-            print_epoch.append(epoch)
 
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
@@ -87,12 +78,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     scheduler.step()
 
                 epoch_loss = running_loss / dataset_sizes[phase]
-
-                if phase == 'train':
-                    print_train_loss.append(epoch_loss)
-                else:
-                    print_val_loss.append(epoch_loss)
-
                 epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
                 print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
@@ -110,28 +95,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
         # load best model weights
         model.load_state_dict(torch.load(best_model_params_path))
-
-        visualize_train_loss(print_train_loss, print_epoch)
-        visualize_val_loss(print_val_loss, print_epoch)
-
     return model
-def visualize_train_loss(loss, epoch):
-
-    plt.plot(epoch, loss, label='Training Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Training Loss Over Epochs')
-    plt.legend()
-    plt.show()
-
-def visualize_val_loss(loss, epoch):
-
-    plt.plot(epoch, loss, label='Validation Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Validation Loss Over Epochs')
-    plt.legend()
-    plt.show()
 
 def visualize_model(model, num_images=6):
     was_training = model.training
@@ -160,9 +124,28 @@ def visualize_model(model, num_images=6):
         model.train(mode=was_training)
 
 
+def visualize_model_predictions(model, img_path):
+    was_training = model.training
+    model.eval()
 
-if __name__=='__main__':
+    img = Image.open(img_path)
+    img = data_transforms['val'](img)
+    img = img.unsqueeze(0)
+    img = img.to(device)
 
+    with torch.no_grad():
+        outputs = model(img)
+        _, preds = torch.max(outputs, 1)
+
+        ax = plt.subplot(2, 2, 1)
+        ax.axis('off')
+        ax.set_title(f'Predicted: {class_names[preds[0]]}')
+        imshow(img.cpu().data[0])
+
+        model.train(mode=was_training)
+
+
+if __name__ == '__main__':
     data_transforms = {
         'train': transforms.Compose([
             transforms.RandomResizedCrop(224),
@@ -178,14 +161,13 @@ if __name__=='__main__':
         ]),
     }
 
-    data_dir = '/storage/sjpark/hymenoptera_data/hymenoptera_data/'  #data_path
+    data_dir = '/storage/sjpark/hymenoptera_data/hymenoptera_data/'  # data_path
 
     # train & val 에 대해서 image_datasets['train'] or image_datasets['val']을 하면 data_transforms한 정보가 나옴
     image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
                                               data_transforms[x])
                       for x in ['train', 'val']}
     # ------------------------------------------------------------------------------------------------------
-
 
     # ------------------------------------- data_loader -------------------------------
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
@@ -194,35 +176,32 @@ if __name__=='__main__':
     # train & val 에 대한 데이터 로더가 생성
     # ----------------------------------------------------------------------------------
 
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']} # train: 244, val: 153
-    class_names = image_datasets['train'].classes # class의 정보를 나타냄.
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}  # train: 244, val: 153
+    class_names = image_datasets['train'].classes  # class의 정보를 나타냄.
 
-    # --------------------------gpu_setup----------------------
     gpu_id = "0"
     device = torch.device("cuda:{}" .format(gpu_id) if torch.cuda.is_available() else "cpu")
-    # ---------------------------------------------------------
 
-    # ------------------- img_show ---------------------------
-    # inputs, classes = next(iter(dataloaders['train']))
-    # out = torchvision.utils.make_grid(inputs)
-    # imshow(out, title=[class_names[x] for x in classes])
-    # ---------------------------------------------------------
+    model_conv = torchvision.models.resnet18(pretrained=True)
+    for param in model_conv.parameters():
+        param.requires_grad = False
 
-    # --------------------------------training----------------------------------------
-    model_ft = models.resnet18(pretrained=True)
-    num_ftrs = model_ft.fc.in_features
-    model_ft.fc = nn.Linear(num_ftrs, 2)
-    model_ft = model_ft.to(device)
+    # Parameters of newly constructed modules have requires_grad=True by default
+    num_ftrs = model_conv.fc.in_features
+    model_conv.fc = nn.Linear(num_ftrs, 2)
+
+    model_conv = model_conv.to(device)
+
     criterion = nn.CrossEntropyLoss()
+    optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 
-    # Observe that all parameters are being optimized
-    optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+    model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=25)
 
-    # Decay LR by a factor of 0.1 every 7 epochs
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+    visualize_model(model_conv)
+    plt.ioff()
+    plt.show()
 
-    model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler, num_epochs=25)
-
-
-
-
+    visualize_model_predictions(model_conv, img_path='/storage/sjpark/hymenoptera_data/hymenoptera_data/val/bees/72100438_73de9f17af.jpg')
+    plt.ioff()
+    plt.show()
