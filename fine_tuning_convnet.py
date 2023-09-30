@@ -34,7 +34,8 @@ def imshow(inp, title=None):
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
-    print_loss = []
+    print_train_loss = []
+    print_val_loss = []
     print_epoch = []
     # Create a temporary directory to save training checkpoints
     with TemporaryDirectory() as tempdir:
@@ -86,7 +87,12 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     scheduler.step()
 
                 epoch_loss = running_loss / dataset_sizes[phase]
-                print_loss.append(epoch_loss)
+
+                if phase == 'train':
+                    print_train_loss.append(epoch_loss)
+                else:
+                    print_val_loss.append(epoch_loss)
+
                 epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
                 print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
@@ -104,15 +110,26 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
         # load best model weights
         model.load_state_dict(torch.load(best_model_params_path))
-        visualize_loss(print_loss,print_epoch)
 
+        visualize_train_loss(print_train_loss, print_epoch)
+        visualize_val_loss(print_val_loss, print_epoch)
+        
     return model
-def visualize_loss(loss, epoch):
+def visualize_train_loss(loss, epoch):
 
     plt.plot(epoch, loss, label='Training Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training Loss Over Epochs')
+    plt.legend()
+    plt.show()
+
+def visualize_val_loss(loss, epoch):
+
+    plt.plot(epoch, loss, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Validation Loss Over Epochs')
     plt.legend()
     plt.show()
 
