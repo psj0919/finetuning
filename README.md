@@ -12,7 +12,9 @@
 ![image](https://github.com/psj0919/finetuning/assets/110454977/65ae8fbf-15a9-4c27-a981-505bc6443bcf)
 
 4. fine_tunung_convnet_validation_accuracy
- 
+   
+![image](https://github.com/psj0919/finetuning/assets/110454977/8dcb2ade-befa-4075-b4a1-c89253a8d8d8)
+
 5. result of fine_tuning_convnet_feature_extractor
    
 ![image](https://github.com/psj0919/finetuning/assets/110454977/e831ae9d-efa3-46c7-9324-e8d95bb32256)
