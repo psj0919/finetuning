@@ -37,6 +37,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     print_train_loss = []
     print_val_loss = []
     print_epoch = []
+    print_train_acc = []
+    print_val_acc = []
     # Create a temporary directory to save training checkpoints
     with TemporaryDirectory() as tempdir:
         best_model_params_path = os.path.join(tempdir, 'best_model_params.pt')
@@ -87,13 +89,14 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     scheduler.step()
 
                 epoch_loss = running_loss / dataset_sizes[phase]
+                epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
                 if phase == 'train':
                     print_train_loss.append(epoch_loss)
+                    print_train_acc.append(epoch_acc)
                 else:
                     print_val_loss.append(epoch_loss)
-
-                epoch_acc = running_corrects.double() / dataset_sizes[phase]
+                    print_val_acc.append(epoch_acc)
 
                 print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
@@ -111,27 +114,32 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
         # load best model weights
         model.load_state_dict(torch.load(best_model_params_path))
 
-        visualize_train_loss(print_train_loss, print_epoch)
-        visualize_val_loss(print_val_loss, print_epoch)
+        visualize_loss(print_train_loss, print_epoch, label='Training loss')
+        visualize_acc(print_train_acc, print_epoch, label='Training acc')
+        visualize_loss(print_val_loss, print_epoch, label='Validation loss')
+        visualize_acc(print_val_acc, print_epoch, label = 'validation acc')
 
     return model
-def visualize_train_loss(loss, epoch):
+def visualize_loss(loss, epoch, label):
 
-    plt.plot(epoch, loss, label='Training Loss')
+    plt.plot(epoch, loss, label=label)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title('Training Loss Over Epochs')
+    plt.title('Losses Over Epochs')
     plt.legend()
     plt.show()
 
-def visualize_val_loss(loss, epoch):
 
-    plt.plot(epoch, loss, label='Validation Loss')
+def visualize_acc(acc, epoch, label):
+
+    plt.plot(epoch, acc, label=label)
     plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Validation Loss Over Epochs')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy over Epochs')
     plt.legend()
     plt.show()
+
+
 
 def visualize_model(model, num_images=6):
     was_training = model.training

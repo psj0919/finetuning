@@ -1,17 +1,18 @@
-import transforms as T
+import reference.transforms as T
 import torch
 
-from engine import train_one_epoch, evaluate
+from reference.engine import train_one_epoch, evaluate
+import utils
 from dataset.torchvision_dataset import PennFudanDataset
 from model.torchvision_model import get_model_instance_segmentation
 from torchvision.transforms import ConvertImageDtype
-import utils
+
 
 
 def get_transform(train):
     transforms = []
     transforms.append(T.PILToTensor())
-    transforms.append(ConvertImageDtype(torch.float))
+    transforms.append(T.ConvertImageDtype(torch.float))
     if train:
         transforms.append(T.RandomHorizontalFlip(0.5))
     return T.Compose(transforms)
